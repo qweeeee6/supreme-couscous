@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if current_category %}{{ current_category.name }}{% else %}所有零食{% endif %} - 零食购物网
+{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <!-- 侧边栏：分类筛选 -->
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">零食分类</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item {% if not current_category %}active{% endif %}">
+                        <a href="{% url 'products:product_list' %}" class="{% if not current_category %}text-white{% else %}text-dark{% endif %} text-decoration-none">
+                            所有零食
+                        </a>
+                    </li>
+                    {% for category in categories %}
+                        <li class="list-group-item {% if current_category and current_category.id == category.id %}active{% endif %}">
+                            <a href="{{ category.get_absolute_url }}" class="{% if current_category and current_category.id == category.id %}text-white{% else %}text-dark{% endif %} text-decoration-none">
+                                {{ category.name }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- 主内容：产品列表 -->
+        <div class="col-md-9">
+            <!-- 页面标题和结果统计 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    {% if current_category %}
+                        {{ current_category.name }}
+                    {% else %}
+                        所有零食
+                    {% endif %}
+                </h2>
+                <p class="text-muted">找到 {{ products.paginator.count }} 件商品</p>
+            </div>
+
+            <!-- 产品网格 -->
+            {% if products %}
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    {% for product in products %}
+                        <div class="col">
+                            <div class="card h-100 shadow-sm hover-shadow transition-all">
+                                <!-- 产品图片 -->
+                                <div class="product-image-container">
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="card-img-top product-image">
+                                    {% else %}
+                                        <img src="https://picsum.photos/seed/{{ product.id }}/300/200" alt="{{ product.name }}" class="card-img-top product-image">
+                                    {% endif %}
+                                    {% if not product.available %}
+                                        <div class="out-of-stock-overlay">缺货</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- 产品信息 -->
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <a href="{{ product.get_absolute_url }}" class="text-decoration-none text-dark hover-text-primary">
+                                            {{ product.name }}
+                                        </a>
+                                    </h5>
+                                    <p class="card-text text-truncate">{{ product.description|truncatechars:60 }}</p>
+                                    <p class="card-text"><strong class="text-primary fs-5">¥{{ product.price }}</strong></p>
+                                </div>
+
+                                <!-- 操作按钮 -->
+                                <div class="card-footer bg-transparent">
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ product.get_absolute_url }}" class="btn btn-outline-primary">查看详情</a>
+                                        {% if product.available %}
+                                            <form action="{% url 'cart:cart_add' product.id %}" method="post" class="d-grid">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="bi bi-cart-plus"></i> 加入购物车
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <button class="btn btn-secondary" disabled>暂时缺货</button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- 分页控件 -->
+                {% if products.paginator.num_pages > 1 %}
+                    <nav class="mt-5">
+                        <ul class="pagination justify-content-center">
+                            {% if products.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ products.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">上一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">上一页</span>
+                                </li>
+                            {% endif %}
+
+                            {% for i in products.paginator.page_range %}
+                                {% if products.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ i }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ i }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if products.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ products.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">下一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">下一页</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <!-- 无结果提示 -->
+                <div class="alert alert-info text-center p-5">
+                    <h4>没有找到符合条件的零食</h4>
+                    <p class="mt-3">请尝试其他搜索关键词或浏览其他分类</p>
+                    <a href="{% url 'products:product_list' %}" class="btn btn-primary mt-2">查看所有零食</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-image-container {
+        position: relative;
+        overflow: hidden;
+        height: 200px;
+    }
+    
+    .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    
+    .product-image:hover {
+        transform: scale(1.05);
+    }
+    
+    .out-of-stock-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    
+    .hover-shadow:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .transition-all {
+        transition: all 0.3s ease;
+    }
+    
+    .hover-text-primary:hover {
+        color: #0d6efd !important;
+    }
+</style>
+{% endblock %}

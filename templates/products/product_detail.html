@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - 零食购物网{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <!-- 产品图片 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="card-img-top" style="height: 400px; object-fit: contain; padding: 20px;">
+                {% else %}
+                    <img src="https://picsum.photos/seed/{{ product.id }}/600/400" alt="{{ product.name }}" class="card-img-top" style="height: 400px; object-fit: contain; padding: 20px;">
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 产品信息 -->
+        <div class="col-md-6">
+            <h1 class="page-title">{{ product.name }}</h1>
+            
+            <div class="mb-3">
+                <span class="badge bg-secondary">{{ product.category.name }}</span>
+                {% if product.available %}
+                    <span class="badge bg-success">有货</span>
+                {% else %}
+                    <span class="badge bg-danger">缺货</span>
+                {% endif %}
+            </div>
+            
+            <div class="mb-4">
+                <h3 class="text-primary">¥{{ product.price }}</h3>
+                <p class="text-muted">库存: {{ product.stock }} 件</p>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">产品介绍</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ product.description|linebreaks }}</p>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-3">
+                {% if product.available %}
+                    <form action="{% url 'cart:cart_add' product.id %}" method="post" class="d-flex align-items-center">
+                        {% csrf_token %}
+                        <div class="me-3">
+                            <label for="quantity" class="form-label">数量:</label>
+                            <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ product.stock }}" class="form-control" style="width: 80px;">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-cart-plus"></i> 加入购物车
+                        </button>
+                    </form>
+                {% else %}
+                    <button class="btn btn-secondary" disabled>暂时缺货</button>
+                {% endif %}
+                
+                <button class="btn btn-outline-secondary" id="add-to-favorite">
+                    <i class="bi bi-heart"></i> 收藏
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相关产品 -->
+    {% if related_products %}
+        <div class="mt-8">
+            <h2 class="page-title">相关推荐</h2>
+            <div class="row row-cols-1 row-cols-md-4 g-4">
+                {% for product in related_products %}
+                    <div class="col">
+                        <div class="card h-100">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                            {% else %}
+                                <img src="https://picsum.photos/seed/{{ product.id }}/300/200" alt="{{ product.name }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <a href="{{ product.get_absolute_url }}" class="text-decoration-none text-dark">{{ product.name|truncatechars:20 }}</a>
+                                </h5>
+                                <p class="card-text text-primary">¥{{ product.price }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 产品详情页额外的交互功能
+    document.addEventListener('DOMContentLoaded', function() {
+        // 收藏按钮功能
+        const favoriteBtn = document.getElementById('add-to-favorite');
+        if (favoriteBtn) {
+            favoriteBtn.addEventListener('click', function() {
+                this.classList.toggle('btn-outline-secondary');
+                this.classList.toggle('btn-danger');
+                
+                const icon = this.querySelector('i');
+                icon.classList.toggle('bi-heart');
+                icon.classList.toggle('bi-heart-fill');
+                
+                // 显示提示消息
+                const message = document.createElement('div');
+                message.className = 'alert alert-success';
+                message.textContent = this.classList.contains('btn-danger') ? '已添加到收藏' : '已取消收藏';
+                document.querySelector('main').prepend(message);
+                
+                // 自动关闭提示
+                setTimeout(() => {
+                    message.remove();
+                }, 2000);
+            });
+        }
+        
+        // 数量输入框限制
+        const quantityInput = document.getElementById('quantity');
+        if (quantityInput) {
+            quantityInput.addEventListener('change', function() {
+                const max = parseInt(this.max);
+                const min = parseInt(this.min);
+                
+                if (this.value > max) {
+                    this.value = max;
+                    alert(`最多只能购买${max}件`);
+                }
+                
+                if (this.value < min) {
+                    this.value = min;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

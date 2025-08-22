@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}个人资料 - 零食购物网{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">个人资料</h4>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ user.username }}</h5>
+                    <p class="card-text"><strong>邮箱：</strong>{{ user.email|default:"未设置" }}</p>
+                    <p class="card-text"><strong>注册时间：</strong>{{ user.date_joined|date:"Y年m月d日" }}</p>
+                    <p class="card-text"><strong>最后登录：</strong>{{ user.last_login|date:"Y年m月d日 H:i" }}</p>
+                    
+                    <a href="{% url 'orders:order_list' %}" class="btn btn-outline-primary">查看我的订单</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
