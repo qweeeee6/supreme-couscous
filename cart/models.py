@@ -5,15 +5,24 @@ from products.models import Product
 
 class Cart(models.Model):
     """购物车模型"""
+    """购物车模型"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True,
-                             verbose_name="用户")
-    session_id = models.CharField(max_length=255, null=True, blank=True, verbose_name="会话ID")
+                             verbose_name="用户", unique=True)  # 添加unique=True
+    session_id = models.CharField(max_length=255, null=True, blank=True, verbose_name="会话ID",
+                                  unique=True)  # 添加unique=True
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         verbose_name = '购物车'
         verbose_name_plural = '购物车'
+
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(user__isnull=False) | models.Q(session_id__isnull=False),
+                name="cart_user_or_session_required"
+            )
+        ]
 
     def __str__(self):
         return f"Cart {self.id}"
@@ -32,6 +41,8 @@ class CartItem(models.Model):
     class Meta:
         verbose_name = '购物车项目'
         verbose_name_plural = '购物车项目'
+        # 约束：同一购物车中同一商品只能有一条记录（避免重复添加）
+        unique_together = ['cart', 'product']  # 关键添加
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"
