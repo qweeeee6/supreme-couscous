@@ -1,4 +1,4 @@
-from django.db.models import MultipleObjectsReturned
+from django.core.exceptions import MultipleObjectsReturned
 from .models import Cart
 
 def cart(request):
