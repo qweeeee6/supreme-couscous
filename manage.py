@@ -2,6 +2,7 @@
 """Django's command-line utility for administrative tasks."""
 #ge01 g12345
 #python manage.py runserver
+#https://github.com/qweeeee6/supreme-couscous
 import os
 import sys
 

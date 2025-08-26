@@ -40,7 +40,9 @@
                         所有零食
                     {% endif %}
                 </h2>
-                <p class="text-muted">找到 {{ products.paginator.count }} 件商品</p>
+                <p class="text-muted">
+                    找到 {% if products.paginator %}{{ products.paginator.count }}{% else %}0{% endif %} 件商品
+                </p>
             </div>
 
             <!-- 产品网格 -->
