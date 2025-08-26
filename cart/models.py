@@ -1,13 +1,13 @@
 from django.db import models
 from django.conf import settings
 from products.models import Product
+from django.contrib.auth.models import User
 
 
 class Cart(models.Model):
     """购物车模型"""
     """购物车模型"""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True,
-                             verbose_name="用户", unique=True)  # 添加unique=True
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     session_id = models.CharField(max_length=255, null=True, blank=True, verbose_name="会话ID",
                                   )  # 添加unique=True
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
