@@ -83,7 +83,10 @@
                 <div class="card-body">
                     {% if order.status == 'pending' %}
                         <button class="btn btn-primary w-100 mb-2">立即支付</button>
-                        <button class="btn btn-danger w-100">取消订单</button>
+                        <form action="{% url 'orders:order_cancel' order.id %}" method="post" onsubmit="return confirm('确定要取消订单吗？')">
+                            {% csrf_token %}
+                                <button type="submit" class="btn btn-danger w-100">取消订单</button>
+                        </form>
                     {% elif order.status == 'paid' %}
                         <p class="text-center">您的订单已支付，正在准备发货</p>
                     {% elif order.status == 'shipped' %}

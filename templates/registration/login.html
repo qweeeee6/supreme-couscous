@@ -46,7 +46,7 @@
                         </div>
 
                         <div class="mb-3 form-check">
-                            {{ form.remember_me|add_class:"form-check-input" }}
+                            <input type="checkbox" name="{{ form.remember_me.html_name }}" id="{{ form.remember_me.id_for_label }}" class="form-check-input">
                             <label class="form-check-label" for="{{ form.remember_me.id_for_label }}">
                                 记住我
                             </label>

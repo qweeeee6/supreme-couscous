@@ -82,3 +82,30 @@ def order_detail(request, order_id):
     return render(request, 'orders/order_detail.html', {
         'order': order
     })
+
+
+@login_required
+def order_cancel(request, order_id):
+    """取消订单（包含库存恢复逻辑）"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+
+    # 只有待处理状态的订单可以取消
+    if order.status == 'pending':
+        # 恢复库存
+        for item in order.items.all():  # 遍历订单中的所有商品
+            product = item.product
+            # 增加库存
+            product.stock += item.quantity
+            # 如果库存恢复为正数，设置为可售
+            if product.stock > 0:
+                product.available = True
+            product.save()  # 保存商品信息
+
+        # 修改订单状态
+        order.status = 'cancelled'
+        order.save()
+        messages.success(request, '订单已成功取消')
+    else:
+        messages.error(request, '只有待处理的订单可以取消')
+
+    return redirect('orders:order_detail', order_id=order.id)

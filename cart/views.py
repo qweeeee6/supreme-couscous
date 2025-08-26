@@ -4,12 +4,25 @@ from django.contrib import messages
 from products.models import Product
 from .models import Cart, CartItem
 
+
 @require_POST
 def cart_add(request, product_id):
-    """添加商品到购物车"""
+    """添加商品到购物车（支持自定义数量）"""
     product = get_object_or_404(Product, id=product_id)
 
-    # 获取或创建购物车
+    # 读取前端传入的数量（默认为1，确保是整数且不小于1）
+    try:
+        quantity = int(request.POST.get('quantity', 1))
+        quantity = max(1, quantity)  # 确保数量至少为1
+    except (ValueError, TypeError):
+        quantity = 1  # 转换失败时默认1
+
+    # 检查数量是否超过库存
+    if quantity > product.stock:
+        messages.error(request, f'抱歉，{product.name} 库存不足（当前库存：{product.stock}）')
+        return redirect('products:product_detail', id=product.id, slug=product.slug)
+
+    # 获取或创建购物车（原有逻辑不变）
     if request.user.is_authenticated:
         cart, created = Cart.objects.get_or_create(user=request.user)
     else:
@@ -19,16 +32,20 @@ def cart_add(request, product_id):
             session_id = request.session.session_key
         cart, created = Cart.objects.get_or_create(session_id=session_id)
 
-    # 尝试获取已有购物车项
+    # 处理购物车项：使用传入的quantity更新数量
     try:
         cart_item = CartItem.objects.get(cart=cart, product=product)
-        cart_item.quantity += 1
-        cart_item.save()
-        messages.success(request, f'已将 {product.name} 的数量更新为 {cart_item.quantity}')
+        # 更新为传入的数量（而非+1）
+        if cart_item.quantity + quantity <= product.stock:
+            cart_item.quantity += quantity
+            cart_item.save()
+            messages.success(request, f'已将 {product.name} 的数量更新为 {cart_item.quantity}')
+        else:
+            messages.error(request, f'抱歉，{product.name} 库存不足（当前库存：{product.stock}）')
     except CartItem.DoesNotExist:
-        # 创建新的购物车项
-        CartItem.objects.create(cart=cart, product=product, quantity=1)
-        messages.success(request, f'已将 {product.name} 添加到购物车')
+        # 创建新订单项时使用传入的quantity
+        CartItem.objects.create(cart=cart, product=product, quantity=quantity)
+        messages.success(request, f'已将 {product.name} 添加到购物车（数量：{quantity}）')
 
     return redirect('cart:cart_detail')
 
