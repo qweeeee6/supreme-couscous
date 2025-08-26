@@ -9,7 +9,7 @@ class Cart(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True,
                              verbose_name="用户", unique=True)  # 添加unique=True
     session_id = models.CharField(max_length=255, null=True, blank=True, verbose_name="会话ID",
-                                  unique=True)  # 添加unique=True
+                                  )  # 添加unique=True
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
@@ -42,7 +42,7 @@ class CartItem(models.Model):
         verbose_name = '购物车项目'
         verbose_name_plural = '购物车项目'
         # 约束：同一购物车中同一商品只能有一条记录（避免重复添加）
-        unique_together = ['cart', 'product']  # 关键添加
+        unique_together = []  # 关键添加
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"

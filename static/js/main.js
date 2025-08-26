@@ -19,11 +19,16 @@ function initCartFunctions() {
     const addToCartButtons = document.querySelectorAll('form[action*="cart/add"] button');
     addToCartButtons.forEach(button => {
         button.addEventListener('click', function(e) {
+            console.log('按钮被点击了！');
+            const form = this.closest('form'); // 获取按钮所在的表单
             const originalText = this.innerHTML;
+             // 先提交表单，再执行动画（或同步执行）
+            form.submit(); // 手动提交表单
+
             this.disabled = true;
             this.innerHTML = '<i class="bi bi-spinner bi-spin"></i> 加入中...';
 
-            // 模拟加载延迟
+            // 模拟加载反馈（不影响实际提交）
             setTimeout(() => {
                 this.innerHTML = '<i class="bi bi-check"></i> 已加入';
                 setTimeout(() => {

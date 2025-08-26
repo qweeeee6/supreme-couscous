@@ -16,3 +16,10 @@ class RegistrationForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+class LoginForm(forms.Form):
+    # 其他字段（用户名、密码）...
+    remember_me = forms.BooleanField(
+        required=False,  # 可选，不勾选也能提交
+        label="记住我"
+    )

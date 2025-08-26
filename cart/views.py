@@ -4,7 +4,7 @@ from django.contrib import messages
 from products.models import Product
 from .models import Cart, CartItem
 
-
+@require_POST
 def cart_add(request, product_id):
     """添加商品到购物车"""
     product = get_object_or_404(Product, id=product_id)
