@@ -6,6 +6,43 @@
 
 {% block content %}
     <div class="row">
+        <!-- 原侧边栏分类列表之后添加 -->
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">高级筛选</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'products:product_list' %}">
+                    <!-- 价格区间 -->
+                    <div class="mb-3">
+                        <label class="form-label">价格区间</label>
+                        <div class="d-flex gap-2">
+                            <input type="number" step="0.01" min="0"
+                                   name="min_price" class="form-control"
+                                   placeholder="最低"
+                                   value="{{ request.GET.min_price|default:'' }}">
+                            <span class="align-self-center">-</span>
+                            <input type="number" step="0.01" min="0"
+                                   name="max_price" class="form-control"
+                                   placeholder="最高"
+                                   value="{{ request.GET.max_price|default:'' }}">
+                        </div>
+                    </div>
+
+                    <!-- 隐藏字段：保留现有搜索关键词和分类 -->
+                    {% if request.GET.search %}
+                        <input type="hidden" name="search" value="{{ request.GET.search }}">
+                    {% endif %}
+                    {% if current_category %}
+                        <input type="hidden" name="category" value="{{ current_category.slug }}">
+                    {% endif %}
+
+                    <!-- 筛选按钮 -->
+                    <button type="submit" class="btn btn-primary w-100 mb-2">筛选</button>
+                    <a href="{% url 'products:product_list' %}" class="btn btn-outline-secondary w-100">重置</a>
+                </form>
+            </div>
+        </div>
         <!-- 侧边栏：分类筛选 -->
         <div class="col-md-2 mb-4">
             <div class="card">
@@ -41,7 +78,7 @@
                     {% endif %}
                 </h2>
                 <p class="text-muted">
-                    找到 {% if products.paginator %}{{ products.paginator.count }}{% else %}0{% endif %} 件商品
+                    找到 {{ page_obj.paginator.count }} 件商品<!-- page_obj是ListView默认提供的分页对象 -->
                 </p>
             </div>
 
@@ -96,12 +133,19 @@
                 </div>
 
                 <!-- 分页控件 -->
-                {% if products.paginator.num_pages > 1 %}
+                {% if page_obj.paginator.num_pages > 1 %}
                     <nav class="mt-5">
                         <ul class="pagination justify-content-center">
                             {% if products.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ products.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">上一页</a>
+                                    <a class="page-link" href="?page={{ products.previous_page_number }}
+                                        {% if request.GET.search %}&search={{ request.GET.search }}{% endif %}
+                                        {% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}
+                                        {% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}
+                                        {% if request.GET.available %}&available={{ request.GET.available }}{% endif %}
+                                        {% if current_category %}&category={{ current_category.slug }}{% endif %}">
+                                        上一页
+                                    </a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -116,14 +160,28 @@
                                     </li>
                                 {% else %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ i }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ i }}</a>
+                                        <a class="page-link" href="?page={{ i }}
+                                            {% if request.GET.search %}&search={{ request.GET.search }}{% endif %}
+                                            {% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}
+                                            {% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}
+                                            {% if request.GET.available %}&available={{ request.GET.available }}{% endif %}
+                                            {% if current_category %}&category={{ current_category.slug }}{% endif %}">
+                                            {{ i }}
+                                        </a>
                                     </li>
                                 {% endif %}
                             {% endfor %}
 
                             {% if products.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ products.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">下一页</a>
+                                    <a class="page-link" href="?page={{ products.next_page_number }}
+                                        {% if request.GET.search %}&search={{ request.GET.search }}{% endif %}
+                                        {% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}
+                                        {% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}
+                                        {% if request.GET.available %}&available={{ request.GET.available }}{% endif %}
+                                        {% if current_category %}&category={{ current_category.slug }}{% endif %}">
+                                        下一页
+                                    </a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">

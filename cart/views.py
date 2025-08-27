@@ -48,7 +48,7 @@ def cart_add(request, product_id):
         CartItem.objects.create(cart=cart, product=product, quantity=quantity)
         messages.success(request, f'已将 {product.name} 添加到购物车（数量：{quantity}）')
 
-    return redirect('cart:cart_detail')
+    return redirect(product.get_absolute_url())
 
 
 def cart_remove(request, item_id):
