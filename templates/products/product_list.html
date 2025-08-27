@@ -133,17 +133,17 @@
                 </div>
 
                 <!-- 分页控件 -->
+                <!-- 替换原分页控件的完整代码 -->
                 {% if page_obj.paginator.num_pages > 1 %}
                     <nav class="mt-5">
                         <ul class="pagination justify-content-center">
-                            {% if products.has_previous %}
+                            <!-- 替换原分页部分的上一页链接 -->
+                            {% if page_obj.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ products.previous_page_number }}
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}
                                         {% if request.GET.search %}&search={{ request.GET.search }}{% endif %}
                                         {% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}
-                                        {% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}
-                                        {% if request.GET.available %}&available={{ request.GET.available }}{% endif %}
-                                        {% if current_category %}&category={{ current_category.slug }}{% endif %}">
+                                        {% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}">
                                         上一页
                                     </a>
                                 </li>
@@ -153,8 +153,9 @@
                                 </li>
                             {% endif %}
 
-                            {% for i in products.paginator.page_range %}
-                                {% if products.number == i %}
+                            <!-- 替换原分页部分的页码链接 -->
+                            {% for i in page_obj.paginator.page_range %}
+                                {% if page_obj.number == i %}
                                     <li class="page-item active">
                                         <span class="page-link">{{ i }}</span>
                                     </li>
@@ -163,23 +164,20 @@
                                         <a class="page-link" href="?page={{ i }}
                                             {% if request.GET.search %}&search={{ request.GET.search }}{% endif %}
                                             {% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}
-                                            {% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}
-                                            {% if request.GET.available %}&available={{ request.GET.available }}{% endif %}
-                                            {% if current_category %}&category={{ current_category.slug }}{% endif %}">
+                                            {% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}">
                                             {{ i }}
                                         </a>
                                     </li>
                                 {% endif %}
                             {% endfor %}
 
-                            {% if products.has_next %}
+                            <!-- 替换原分页部分的下一页链接 -->
+                            {% if page_obj.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ products.next_page_number }}
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}
                                         {% if request.GET.search %}&search={{ request.GET.search }}{% endif %}
                                         {% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}
-                                        {% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}
-                                        {% if request.GET.available %}&available={{ request.GET.available }}{% endif %}
-                                        {% if current_category %}&category={{ current_category.slug }}{% endif %}">
+                                        {% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}">
                                         下一页
                                     </a>
                                 </li>
