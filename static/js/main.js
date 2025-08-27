@@ -132,3 +132,80 @@ function initSearchAutocomplete() {
         });
     }
 }
+
+// 表单验证
+function initFormValidation() {
+    // 注册表单验证
+    const registerForm = document.querySelector('form[action*="accounts/register"]');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            const password1 = this.querySelector('input[name="password1"]').value;
+            const password2 = this.querySelector('input[name="password2"]').value;
+
+            // 简单的密码匹配验证
+            if (password1 !== password2) {
+                e.preventDefault();
+                alert('两次输入的密码不一致，请重新输入');
+                return false;
+            }
+
+            // 密码长度验证
+            if (password1.length < 8) {
+                e.preventDefault();
+                alert('密码长度不能少于8个字符');
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    // 密码修改表单验证
+    const passwordChangeForm = document.querySelector('form[action*="password-change"]');
+    if (passwordChangeForm) {
+        passwordChangeForm.addEventListener('submit', function(e) {
+            const oldPassword = this.querySelector('input[name="old_password"]').value;
+            const newPassword1 = this.querySelector('input[name="new_password1"]').value;
+            const newPassword2 = this.querySelector('input[name="new_password2"]').value;
+
+            // 验证旧密码不为空
+            if (oldPassword.trim() === '') {
+                e.preventDefault();
+                alert('请输入当前密码');
+                return false;
+            }
+
+            // 验证新密码长度
+            if (newPassword1.length < 8) {
+                e.preventDefault();
+                alert('新密码长度不能少于8个字符');
+                return false;
+            }
+
+            // 验证新密码复杂度（包含字母和数字）
+            const hasLetter = /[a-zA-Z]/.test(newPassword1);
+            const hasNumber = /\d/.test(newPassword1);
+            if (!hasLetter || !hasNumber) {
+                e.preventDefault();
+                alert('新密码必须同时包含字母和数字');
+                return false;
+            }
+
+            // 验证两次输入的新密码一致
+            if (newPassword1 !== newPassword2) {
+                e.preventDefault();
+                alert('两次输入的新密码不一致，请重新输入');
+                return false;
+            }
+
+            // 验证新密码与旧密码不同
+            if (newPassword1 === oldPassword) {
+                e.preventDefault();
+                alert('新密码不能与当前密码相同');
+                return false;
+            }
+
+            return true;
+        });
+    }
+}

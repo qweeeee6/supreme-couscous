@@ -6,13 +6,16 @@
     <h2>我的购物车</h2>
     
     {% if cart.items.all %}
+        <!-- 添加CSRF令牌用于AJAX请求 -->
+        <form style="display: none;">{% csrf_token %}</form>
+
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
                         <th>商品</th>
                         <th>单价</th>
-                        <th>数量</th>
+                        <th style="padding-left: 60px">数量</th>
                         <th>小计</th>
                         <th>操作</th>
                     </tr>
@@ -31,8 +34,25 @@
                                 </div>
                             </td>
                             <td>¥{{ item.product.price }}</td>
-                            <td>{{ item.quantity }}</td>
-                            <td>¥{{ item.get_cost }}</td>
+                            <td>
+                                <div class="quantity-control">
+                                    <button type="button" class="quantity-btn minus-btn" data-item-id="{{ item.id }}">
+                                        <i class="bi bi-dash"></i>
+                                    </button>
+                                    <input type="number"
+                                           class="quantity-input form-control text-center"
+                                           value="{{ item.quantity }}"
+                                           min="1"
+                                           max="{{ item.product.stock }}"
+                                           data-item-id="{{ item.id }}"
+                                           data-last-valid="{{ item.quantity }}">
+                                    <button type="button" class="quantity-btn plus-btn" data-item-id="{{ item.id }}">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            <!-- 小计列添加class用于JS更新 -->
+                            <td class="item-total">¥{{ item.get_cost }}</td>
                             <td>
                                 <a href="{% url 'cart:cart_remove' item.id %}" class="btn btn-sm btn-danger">
                                     <i class="bi bi-trash"></i> 移除
@@ -40,9 +60,10 @@
                             </td>
                         </tr>
                     {% endfor %}
+                     <!-- 总计行添加id用于JS更新 -->
                     <tr class="table-dark">
                         <td colspan="3" class="text-end"><strong>总计：</strong></td>
-                        <td><strong>¥{{ cart.get_total_price }}</strong></td>
+                        <td id="cart-total"><strong>¥{{ cart.get_total_price }}</strong></td>
                         <td></td>
                     </tr>
                 </tbody>
@@ -64,4 +85,215 @@
             <a href="{% url 'home' %}" class="btn btn-primary mt-2">浏览零食</a>
         </div>
     {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 防抖函数
+    function debounce(func, delay = 500) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    // 数量调整函数
+    function adjustQuantity(itemId, change) {
+        const input = document.querySelector(`input[data-item-id="${itemId}"]`);
+        const currentValue = parseInt(input.value);
+        const newValue = currentValue + change;
+
+        // 检查是否在有效范围内
+        if (newValue >= parseInt(input.min) && newValue <= parseInt(input.max)) {
+            input.value = newValue;
+            updateQuantity(itemId); // 直接更新，不触发防抖
+        }
+    }
+
+    // 绑定加减按钮事件
+    document.querySelectorAll('.minus-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            adjustQuantity(this.dataset.itemId, -1);
+        });
+    });
+
+    document.querySelectorAll('.plus-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            adjustQuantity(this.dataset.itemId, 1);
+        });
+    });
+
+    // 输入框事件
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('input', debounce(function() {
+            updateQuantity(this.dataset.itemId);
+        }));
+
+        input.addEventListener('blur', function() {
+            updateQuantity(this.dataset.itemId);
+        });
+
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                this.blur();
+            }
+        });
+    });
+
+    // 更新数量的核心函数（保持原有逻辑）
+    function updateQuantity(itemId) {
+        const input = document.querySelector(`input[data-item-id="${itemId}"]`);
+        const newQuantity = parseInt(input.value);
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const maxStock = parseInt(input.max);
+
+        // 前端验证
+        if (isNaN(newQuantity) || newQuantity < 1 || newQuantity > maxStock) {
+            showMessage(`数量必须在1到${maxStock}之间`, 'danger');
+            input.value = input.dataset.lastValid;
+            return;
+        }
+
+        // 如果数量没有变化，不发送请求
+        if (newQuantity === parseInt(input.dataset.lastValid)) {
+            return;
+        }
+
+        // 显示加载状态
+        input.disabled = true;
+        input.value = '更新中...';
+
+        // 发送AJAX请求（保持原有逻辑）
+        fetch(`{% url 'cart:cart_update' 0 %}`.replace('0', itemId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: `quantity=${newQuantity}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // 更新小计
+                const itemRow = input.closest('tr');
+                itemRow.querySelector('.item-total').textContent = `¥${data.item_total.toFixed(2)}`;
+
+                // 更新总计
+                document.getElementById('cart-total').innerHTML = `<strong>¥${data.cart_total.toFixed(2)}</strong>`;
+
+                // 保存当前有效值
+                input.dataset.lastValid = newQuantity;
+                input.value = newQuantity;
+
+                showMessage(data.message, 'success');
+            } else {
+                showMessage(data.message, 'danger');
+                input.value = input.dataset.lastValid;
+            }
+        })
+        .catch(error => {
+            showMessage('更新失败，请重试', 'danger');
+            input.value = input.dataset.lastValid;
+        })
+        .finally(() => {
+            input.disabled = false;
+        });
+    }
+
+    // 消息提示函数
+    function showMessage(text, type) {
+        const existingMessage = document.querySelector('.cart-message');
+        if (existingMessage) existingMessage.remove();
+
+        const message = document.createElement('div');
+        message.className = `alert alert-${type} cart-message`;
+        message.textContent = text;
+        document.body.appendChild(message);
+
+        setTimeout(() => {
+            message.classList.add('fade');
+            setTimeout(() => message.remove(), 500);
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 数量控制器样式 */
+.quantity-control {
+    display: flex;
+    align-items: center;
+    width: 180px;
+}
+
+.quantity-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ddd;
+    background-color: #f8f9fa;
+    color: #333;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quantity-btn:hover {
+    background-color: #e9ecef;
+    border-color: #ccc;
+}
+
+.quantity-btn.minus-btn {
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+}
+
+.quantity-btn.plus-btn {
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+}
+
+.quantity-input {
+    width: 60px;
+    height: 40px;
+    border-radius: 0 !important;
+    border: 1px solid #ddd;
+    text-align: center;
+    font-size: 1rem;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.quantity-input:focus {
+    border-color: #ff6b6b; /* 使用网站主题色 */
+    z-index: 2; /* 聚焦时显示在按钮上方 */
+}
+
+/* 加载状态样式 */
+.quantity-input:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+/* 提示消息位置调整 */
+.cart-message {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1050;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+</style>
 {% endblock %}

@@ -12,9 +12,14 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ user.username }}</h5>
                     <p class="card-text"><strong>邮箱：</strong>{{ user.email|default:"未设置" }}</p>
+                    <!-- 新增：显示姓名信息 -->
+                    <p class="card-text"><strong>姓名：</strong>{{ user.last_name }}{{ user.first_name|default:"未设置" }}</p>
                     <p class="card-text"><strong>注册时间：</strong>{{ user.date_joined|date:"Y年m月d日" }}</p>
-                    <p class="card-text"><strong>最后登录：</strong>{{ user.last_login|date:"Y年m月d日 H:i" }}</p>
-                    
+                    <p class="card-text"><strong>最后登录：</strong>{{ user.last_login|date:"Y年m月d日 H:i"|default:"从未登录" }}</p>
+
+                    <hr class="my-4">
+                    <a href="{% url 'accounts:profile_edit' %}" class="btn btn-outline-primary">编辑个人资料</a>
+                    <a href="{% url 'accounts:password_change' %}" class="btn btn-outline-secondary">修改密码</a>
                     <a href="{% url 'orders:order_list' %}" class="btn btn-outline-primary">查看我的订单</a>
                 </div>
             </div>

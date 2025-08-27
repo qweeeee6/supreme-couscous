@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib import messages
@@ -84,3 +85,49 @@ def cart_detail(request):
         cart, created = Cart.objects.get_or_create(session_id=session_id)
 
     return render(request, 'cart/cart_detail.html', {'cart': cart})
+
+
+@require_POST
+def cart_update(request, item_id):
+    """更新购物车商品数量"""
+    cart_item = get_object_or_404(CartItem, id=item_id)
+
+    # 验证购物车归属
+    if request.user.is_authenticated:
+        if cart_item.cart.user != request.user:
+            messages.error(request, '无权操作此购物车')
+            return JsonResponse({'status': 'error', 'message': '无权操作此购物车'})
+    else:
+        session_id = request.session.session_key
+        if cart_item.cart.session_id != session_id:
+            messages.error(request, '无权操作此购物车')
+            return JsonResponse({'status': 'error', 'message': '无权操作此购物车'})
+
+    try:
+        quantity = int(request.POST.get('quantity', 1))
+        if quantity < 1:
+            return JsonResponse({'status': 'error', 'message': '数量不能小于1'})
+
+        # 检查库存
+        if quantity > cart_item.product.stock:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'最多只能购买{cart_item.product.stock}件'
+            })
+
+        # 更新数量
+        cart_item.quantity = quantity
+        cart_item.save()
+
+        # 计算更新后的价格
+        item_total = cart_item.get_cost()
+        cart_total = cart_item.cart.get_total_price()
+
+        return JsonResponse({
+            'status': 'success',
+            'item_total': float(item_total),
+            'cart_total': float(cart_total),
+            'message': '数量已更新'
+        })
+    except ValueError:
+        return JsonResponse({'status': 'error', 'message': '无效的数量'})
