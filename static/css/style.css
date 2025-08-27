@@ -178,3 +178,43 @@ footer a:hover {
     to { transform: translateX(0); }
 }
 
+/* 收藏按钮样式 */
+.favorite-btn {
+    transition: all 0.3s ease;
+}
+
+/* 未收藏状态 */
+.favorite-btn[data-favorited="false"] {
+    color: #6c757d;
+    border-color: #6c757d;
+}
+
+.favorite-btn[data-favorited="false"]:hover {
+    color: #dc3545;
+    border-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.05);
+}
+
+/* 已收藏状态 */
+.favorite-btn[data-favorited="true"] {
+    color: #dc3545;
+    border-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.favorite-btn[data-favorited="true"]:hover {
+    background-color: rgba(220, 53, 69, 0.2);
+}
+
+/* 点击动画 */
+.favorite-btn.clicked i {
+    animation: heartBeat 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+@keyframes heartBeat {
+    0% { transform: scale(1); }
+    14% { transform: scale(1.1); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.1); }
+    70% { transform: scale(1); }
+}

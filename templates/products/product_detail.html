@@ -58,8 +58,11 @@
                     <button class="btn btn-secondary" disabled>暂时缺货</button>
                 {% endif %}
                 
-                <button class="btn btn-outline-secondary" id="add-to-favorite">
-                    <i class="bi bi-heart"></i> 收藏
+                <button class="btn btn-outline-secondary favorite-btn" id="add-to-favorite"
+                        data-product-id="{{ product.id }}"
+                        {% if user_favorites %}data-favorited="true"{% else %}data-favorited="false"{% endif %}>
+                    <i class="bi {% if product in user_favorites %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+                    <span>{% if product in user_favorites %}已收藏{% else %}收藏{% endif %}</span>
                 </button>
             </div>
         </div>
@@ -138,5 +141,101 @@
             });
         }
     });
+
+    // 收藏按钮功能
+    const favoriteBtn = document.getElementById('add-to-favorite');
+    if (favoriteBtn) {
+        // 初始化按钮样式（根据data-favorited属性）
+        if (favoriteBtn.dataset.favorited === 'true') {
+            favoriteBtn.classList.remove('btn-outline-secondary');
+            favoriteBtn.classList.add('btn-danger');
+            const icon = favoriteBtn.querySelector('i');
+            const textSpan = favoriteBtn.querySelector('span');
+            icon.classList.toggle('bi-heart');
+            icon.classList.toggle('bi-heart-fill');
+            textSpan.textContent = "已收藏"
+        }
+
+        favoriteBtn.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const isFavorited = this.dataset.favorited === 'true';
+            const icon = this.querySelector('i');
+            const textSpan = this.querySelector('span');
+
+            // 发送AJAX请求
+            fetch(`/accounts/favorite/toggle/${productId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 更新按钮状态
+                    this.dataset.favorited = data.is_favorited;
+
+                    // 更新样式和文本
+                    if (data.is_favorited) {
+                        this.classList.remove('btn-outline-secondary');
+                        this.classList.add('btn-danger');
+                        icon.classList.remove('bi-heart');
+                        icon.classList.add('bi-heart-fill');
+                        textSpan.textContent = '已收藏';
+                    } else {
+                        this.classList.remove('btn-danger');
+                        this.classList.add('btn-outline-secondary');
+                        icon.classList.remove('bi-heart-fill');
+                        icon.classList.add('bi-heart');
+                        textSpan.textContent = '收藏';
+                    }
+
+                    // 添加点击动画
+                    this.classList.add('clicked');
+                    setTimeout(() => this.classList.remove('clicked'), 600);
+
+                    // 显示提示消息
+                    showNotification(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('收藏操作失败:', error);
+                showNotification('操作失败，请稍后重试', 'error');
+            });
+        });
+    }
+
+    // 辅助函数：获取CSRF令牌
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // 辅助函数：显示通知
+    function showNotification(message, type = 'success') {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} position-fixed top-20 right-3 z-50`;
+        notification.textContent = message;
+        notification.style.animation = 'slideIn 0.3s ease-out';
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 </script>
 {% endblock %}

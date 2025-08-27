@@ -70,4 +70,12 @@ class ProductDetailView(DetailView):
             category=product.category,
             available=True
         ).exclude(id=product.id)[:4]
+
+        if self.request.user.is_authenticated:
+            from accounts.models import Favorite  # 导入收藏模型
+            context['user_favorites'] = Favorite.objects.filter(
+                user=self.request.user,
+                product=product
+            ).exists()
+
         return context

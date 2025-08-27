@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}我的收藏 - 零食购物网{% endblock %}
+
+{% block content %}
+    <h2 class="page-title">我的收藏</h2>
+    
+    {% if favorites %}
+        <div class="row row-cols-1 row-cols-md-3 g-4 mt-4">
+            {% for favorite in favorites %}
+                {% with product=favorite.product %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://picsum.photos/seed/{{ product.id }}/300/200" alt="{{ product.name }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a href="{{ product.get_absolute_url }}" class="text-decoration-none text-dark">{{ product.name|truncatechars:20 }}</a>
+                            </h5>
+                            <p class="card-text text-primary">¥{{ product.price }}</p>
+                            <p class="card-text text-muted small">收藏于 {{ favorite.created_at|date:"Y-m-d" }}</p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex gap-2">
+                                <a href="{{ product.get_absolute_url }}" class="btn btn-outline-primary flex-fill">查看详情</a>
+                                <a href="{% url 'accounts:favorite_toggle' product.id %}" class="btn btn-danger">
+                                    <i class="bi bi-heart-fill"></i> 取消收藏
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info mt-4">
+            <h4>您还没有收藏任何商品</h4>
+            <p>快去浏览喜欢的零食并收藏吧！</p>
+            <a href="{% url 'home' %}" class="btn btn-primary mt-2">浏览零食</a>
+        </div>
+    {% endif %}
+{% endblock %}
