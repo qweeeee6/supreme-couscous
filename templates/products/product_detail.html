@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ product.name }} - 零食购物网{% endblock %}
+{% block title %}{{ product.name }} - 零食小栈{% endblock %}
 
 {% block content %}
     <div class="row">
@@ -60,15 +60,118 @@
                 
                 <button class="btn btn-outline-secondary favorite-btn" id="add-to-favorite"
                         data-product-id="{{ product.id }}"
-                        {% if user_favorites %}data-favorited="true"{% else %}data-favorited="false"{% endif %}>
+                        {% if user_favorites %}data-favorited="true" {% else %}data-favorited="false"{% endif %}>
                     <i class="bi {% if product in user_favorites %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
                     <span>{% if product in user_favorites %}已收藏{% else %}收藏{% endif %}</span>
                 </button>
             </div>
         </div>
     </div>
+    <!-- 评分和评论区域 -->
+    <div class="mt-8">
+        <h2 class="page-title">用户评价</h2>
 
-    <!-- 相关产品 -->
+        <!-- 平均评分 -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-4">
+                        <h3 class="display-4">{{ average_rating|floatformat:1 }}</h3>
+                        <div class="text-warning">
+                            {% for i in "12345"|make_list %}
+                                {% if forloop.counter <= average_rating|floatformat:0 %}
+                                    <i class="bi bi-star-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <p class="text-muted">{{ reviews.count }} 条评价</p>
+                    </div>
+
+                    <!-- 评分分布 -->
+                    <div class="flex-grow-1">
+                        {% for i in "54321"|make_list %}
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="w-10">{{ i }}星</div>
+                                <div class="flex-grow-1 mx-2">
+                                    <div class="progress" style="height: 8px;">
+                                        {% with rating_count=rating_counts.i %}
+                                        {% if reviews.count > 0 %}
+                                        <div class="progress-bar bg-warning" style="width: {{ rating_count|floatformat:0 }}%"></div>
+                                        {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                </div>
+                                <div class="w-10 text-end">
+                                    {% with rating_count=rating_counts.i %}
+                                    {{ rating_count }}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 评论表单 -->
+        {% if user.is_authenticated %}
+        <div class="card mb-6">
+            <div class="card-header">
+                <h5 class="mb-0">发表评价</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ review_form.rating.id_for_label }}" class="form-label">评分</label>
+                        {{ review_form.rating }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ review_form.comment.id_for_label }}" class="form-label">评论内容</label>
+                        {{ review_form.comment }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">提交评论</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-6">
+            请<a href="{% url 'login' %}?next={{ request.path }}">登录</a>后发表评价
+        </div>
+        {% endif %}
+
+        <!-- 评论列表 -->
+        {% if reviews %}
+            <div class="reviews-list">
+                {% for review in reviews %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <h6 class="card-subtitle mb-2 text-muted">{{ review.user.username }}</h6>
+                            <div class="text-warning">
+                                {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= review.rating %}
+                                        <i class="bi bi-star-fill"></i>
+                                    {% else %}
+                                        <i class="bi bi-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <p class="card-text">{{ review.comment }}</p>
+                        <p class="card-text"><small class="text-muted">{{ review.created_at|date:"Y-m-d H:i" }}</small></p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                暂无评价，快来成为第一个评价的用户吧！
+            </div>
+        {% endif %}
+    </div>    <!-- 相关产品 -->
     {% if related_products %}
         <div class="mt-8">
             <h2 class="page-title">相关推荐</h2>
@@ -102,27 +205,67 @@
         // 收藏按钮功能
         const favoriteBtn = document.getElementById('add-to-favorite');
         if (favoriteBtn) {
-            favoriteBtn.addEventListener('click', function() {
-                this.classList.toggle('btn-outline-secondary');
-                this.classList.toggle('btn-danger');
-                
-                const icon = this.querySelector('i');
+            // 初始化按钮样式（根据data-favorited属性）
+            if (favoriteBtn.dataset.favorited === 'true') {
+                favoriteBtn.classList.remove('btn-outline-secondary');
+                favoriteBtn.classList.add('btn-danger');
+                const icon = favoriteBtn.querySelector('i');
+                const textSpan = favoriteBtn.querySelector('span');
                 icon.classList.toggle('bi-heart');
                 icon.classList.toggle('bi-heart-fill');
-                
-                // 显示提示消息
-                const message = document.createElement('div');
-                message.className = 'alert alert-success';
-                message.textContent = this.classList.contains('btn-danger') ? '已添加到收藏' : '已取消收藏';
-                document.querySelector('main').prepend(message);
-                
-                // 自动关闭提示
-                setTimeout(() => {
-                    message.remove();
-                }, 2000);
+                textSpan.textContent = "已收藏"
+            }
+
+            favoriteBtn.addEventListener('click', function() {
+                const productId = this.dataset.productId;
+                const isFavorited = this.dataset.favorited === 'true';
+                const icon = this.querySelector('i');
+                const textSpan = this.querySelector('span');
+
+                // 发送AJAX请求
+                fetch(`/accounts/favorite/toggle/${productId}/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 更新按钮状态
+                        this.dataset.favorited = data.is_favorited;
+
+                        // 更新样式和文本
+                        if (data.is_favorited) {
+                            this.classList.remove('btn-outline-secondary');
+                            this.classList.add('btn-danger');
+                            icon.classList.remove('bi-heart');
+                            icon.classList.add('bi-heart-fill');
+                            textSpan.textContent = '已收藏';
+                        } else {
+                            this.classList.remove('btn-danger');
+                            this.classList.add('btn-outline-secondary');
+                            icon.classList.remove('bi-heart-fill');
+                            icon.classList.add('bi-heart');
+                            textSpan.textContent = '收藏';
+                        }
+
+                        // 添加点击动画
+                        this.classList.add('clicked');
+                        setTimeout(() => this.classList.remove('clicked'), 600);
+
+                        // 显示提示消息
+                        showNotification(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('收藏操作失败:', error);
+                    showNotification('操作失败，请稍后重试', 'error');
+                });
             });
         }
-        
+
         // 数量输入框限制
         const quantityInput = document.getElementById('quantity');
         if (quantityInput) {
@@ -141,71 +284,6 @@
             });
         }
     });
-
-    // 收藏按钮功能
-    const favoriteBtn = document.getElementById('add-to-favorite');
-    if (favoriteBtn) {
-        // 初始化按钮样式（根据data-favorited属性）
-        if (favoriteBtn.dataset.favorited === 'true') {
-            favoriteBtn.classList.remove('btn-outline-secondary');
-            favoriteBtn.classList.add('btn-danger');
-            const icon = favoriteBtn.querySelector('i');
-            const textSpan = favoriteBtn.querySelector('span');
-            icon.classList.toggle('bi-heart');
-            icon.classList.toggle('bi-heart-fill');
-            textSpan.textContent = "已收藏"
-        }
-
-        favoriteBtn.addEventListener('click', function() {
-            const productId = this.dataset.productId;
-            const isFavorited = this.dataset.favorited === 'true';
-            const icon = this.querySelector('i');
-            const textSpan = this.querySelector('span');
-
-            // 发送AJAX请求
-            fetch(`/accounts/favorite/toggle/${productId}/`, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // 更新按钮状态
-                    this.dataset.favorited = data.is_favorited;
-
-                    // 更新样式和文本
-                    if (data.is_favorited) {
-                        this.classList.remove('btn-outline-secondary');
-                        this.classList.add('btn-danger');
-                        icon.classList.remove('bi-heart');
-                        icon.classList.add('bi-heart-fill');
-                        textSpan.textContent = '已收藏';
-                    } else {
-                        this.classList.remove('btn-danger');
-                        this.classList.add('btn-outline-secondary');
-                        icon.classList.remove('bi-heart-fill');
-                        icon.classList.add('bi-heart');
-                        textSpan.textContent = '收藏';
-                    }
-
-                    // 添加点击动画
-                    this.classList.add('clicked');
-                    setTimeout(() => this.classList.remove('clicked'), 600);
-
-                    // 显示提示消息
-                    showNotification(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('收藏操作失败:', error);
-                showNotification('操作失败，请稍后重试', 'error');
-            });
-        });
-    }
-
     // 辅助函数：获取CSRF令牌
     function getCookie(name) {
         let cookieValue = null;

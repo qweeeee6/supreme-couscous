@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product
+from .models import Category, Product, Review
 
 
 @admin.register(Category)
@@ -17,3 +17,10 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ['name', 'description']  # 搜索字段
     date_hierarchy = 'created_at'  # 按日期筛选
     ordering = ['name']  # 排序方式
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ['product', 'user', 'rating', 'created_at']
+    list_filter = [ 'created_at']
+    search_fields = ['user__username', 'product__name', 'comment']

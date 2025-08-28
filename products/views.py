@@ -1,6 +1,9 @@
-from django.shortcuts import render, get_object_or_404
+from django.contrib import messages
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView
-from .models import Product, Category
+
+from .forms import ReviewForm
+from .models import Product, Category, Review
 from django.db.models import Q
 from decimal import Decimal, InvalidOperation
 
@@ -62,20 +65,55 @@ class ProductDetailView(DetailView):
     def get_queryset(self):
         return Product.objects.filter(available=True)
 
+    # products/views.py
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # 获取相关产品（同类别）
-        product = self.get_object()
-        context['related_products'] = Product.objects.filter(
-            category=product.category,
-            available=True
-        ).exclude(id=product.id)[:4]
+        context['review_form'] = ReviewForm()
+        product = self.object
 
-        if self.request.user.is_authenticated:
-            from accounts.models import Favorite  # 导入收藏模型
-            context['user_favorites'] = Favorite.objects.filter(
-                user=self.request.user,
-                product=product
-            ).exists()
+        # 获取评论
+        reviews = product.reviews.all()
+        context['reviews'] = reviews
+
+        # 计算各星级评论数量（1-5星）
+        rating_counts = {i: 0 for i in range(1, 6)}  # 初始化1-5星的计数
+        for review in reviews:
+            if 1 <= review.rating <= 5:
+                rating_counts[review.rating] += 1
+        context['rating_counts'] = rating_counts  # 传递到模板
+
+        # 计算平均评分
+        if reviews:
+            context['average_rating'] = sum(r.rating for r in reviews) / len(reviews)
+        else:
+            context['average_rating'] = 0
 
         return context
+
+    def post(self, request, *args, **kwargs):
+        # 关键步骤：手动获取产品对象并赋值给self.object
+        self.object = self.get_object()  # 这行必须放在最前面
+
+        # 处理评论表单
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            # 检查用户是否已评论
+            if Review.objects.filter(user=request.user, product=self.object).exists():
+                messages.warning(request, '您已经评论过该商品')
+                return redirect('products:product_detail', id=self.object.id, slug=self.object.slug)
+
+            # 保存评论
+            review = form.save(commit=False)
+            review.product = self.object
+            review.user = request.user
+            review.save()
+
+            messages.success(request, '评论提交成功！')
+            return redirect('products:product_detail', id=self.object.id, slug=self.object.slug)
+        else:
+            # 表单无效时返回错误信息
+            messages.error(request, '评论提交失败，请检查输入')
+            # 获取上下文并传递错误表单
+            context = self.get_context_data(object=self.object)
+            context['review_form'] = form
+            return self.render_to_response(context)
