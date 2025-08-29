@@ -115,33 +115,6 @@
             </div>
         </div>
 
-        <!-- 评论表单 -->
-        {% if user.is_authenticated %}
-        <div class="card mb-6">
-            <div class="card-header">
-                <h5 class="mb-0">发表评价</h5>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="{{ review_form.rating.id_for_label }}" class="form-label">评分</label>
-                        {{ review_form.rating }}
-                    </div>
-                    <div class="mb-3">
-                        <label for="{{ review_form.comment.id_for_label }}" class="form-label">评论内容</label>
-                        {{ review_form.comment }}
-                    </div>
-                    <button type="submit" class="btn btn-primary">提交评论</button>
-                </form>
-            </div>
-        </div>
-        {% else %}
-        <div class="alert alert-info mb-6">
-            请<a href="{% url 'login' %}?next={{ request.path }}">登录</a>后发表评价
-        </div>
-        {% endif %}
-
         <!-- 评论列表 -->
         {% if reviews %}
             <div class="reviews-list">
@@ -171,7 +144,55 @@
                 暂无评价，快来成为第一个评价的用户吧！
             </div>
         {% endif %}
-    </div>    <!-- 相关产品 -->
+        <!-- 评论表单 -->
+        {% if user.is_authenticated %}
+        <div class="review-container mt-8 bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
+            <form method="post" id="reviewForm" class="p-6">
+                {% csrf_token %}
+                <label style="font-size:24px">请给出您的评价</label>
+                <!-- 评论输入框 -->
+                <div class="mb-6 ">
+                    <div class="relative w-full max-w-4xl mx-auto">
+                        <textarea id="id_comment" name="comment"  placeholder="请至少输入10个字符,分享您使用该产品的体验、优点和不足..."
+                                  style="resize: none !important; width: 1000px !important; height: 80px !important;"
+                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-none" required>
+                        </textarea>
+                        <div class="absolute right-3 bottom-3 text-xs text-gray-400">
+                            <span id="charCount">0</span>/500
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 星级评分 -->
+                <div class="mb-6">
+                    <div class="star-rating flex items-center gap-2" style="font-size: 2rem;">
+                        <i class="bi bi-star cursor-pointer transition-all duration-200 hover:scale-110" data-rating="1"></i>
+                        <i class="bi bi-star cursor-pointer transition-all duration-200 hover:scale-110" data-rating="2"></i>
+                        <i class="bi bi-star cursor-pointer transition-all duration-200 hover:scale-110" data-rating="3"></i>
+                        <i class="bi bi-star cursor-pointer transition-all duration-200 hover:scale-110" data-rating="4"></i>
+                        <i class="bi bi-star cursor-pointer transition-all duration-200 hover:scale-110" data-rating="5"></i>
+                        <input type="hidden" name="rating" id="rating" value="" required>
+                        <p id="ratingText" style="font-size:12px"> </p>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="flex justify-end">
+                    <button type="submit" id="submitReview" disabled >
+                        发布评论
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div class="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+            <p class="text-gray-700">
+                请<a href="{% url 'login' %}?next={{ request.path }}" class="text-indigo-600 hover:underline font-medium">登录</a>后发表您的评价
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    <!-- 相关产品 -->
     {% if related_products %}
         <div class="mt-8">
             <h2 class="page-title">相关推荐</h2>
@@ -196,6 +217,51 @@
             </div>
         </div>
     {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 星级评分样式 */
+.star-rating .bi-star {
+    color: #d1d5db; /* 未选中的星星颜色 */
+}
+
+.star-rating .bi-star-fill {
+    color: #f59e0b; /* 选中的星星颜色 */
+}
+
+/* 评论框动画效果 */
+#id_comment {
+    transition: all 0.3s ease;
+}
+
+#id_comment:focus {
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* 提交按钮动画 */
+#submitReview:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+#submitReview:not(:disabled):active {
+    transform: translateY(0);
+}
+
+/* 响应式调整 */
+@media (max-width: 640px) {
+    .review-container {
+        border-radius: 0;
+        box-shadow: none;
+        border: 1px solid #e5e7eb;
+    }
+
+    .star-rating {
+        font-size: 1.5rem;
+    }
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -283,6 +349,88 @@
                 }
             });
         }
+
+        const stars = document.querySelectorAll('.star-rating .bi-star');
+        const ratingInput = document.getElementById('rating');
+        const ratingText = document.getElementById('ratingText');
+        const textarea = document.getElementById('id_comment');
+        const charCount = document.getElementById('charCount');
+        const submitBtn = document.getElementById('submitReview');
+        let selectedRating = 0;
+
+        // 星级文本提示
+        const ratingLabels = ['', '很不满意', '不太满意', '一般', '比较满意', '非常满意'];
+
+        // 星级点击事件
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                selectedRating = parseInt(this.getAttribute('data-rating'));
+                updateStars();
+                checkSubmitStatus();
+            });
+
+            star.addEventListener('mouseover', function() {
+                const tempRating = parseInt(this.getAttribute('data-rating'));
+                highlightStars(tempRating);
+                ratingText.textContent = ratingLabels[tempRating];
+                ratingText.classList.add('text-indigo-600');
+            });
+
+            star.addEventListener('mouseout', function() {
+                updateStars();
+                ratingText.textContent = selectedRating ? ratingLabels[selectedRating] : ' ';
+                ratingText.classList.remove('text-indigo-600');
+            });
+        });
+
+        // 评论内容输入事件
+        textarea.addEventListener('input', function() {
+            const length = this.value.length;
+            charCount.textContent = length;
+
+            // 超过字数限制时的样式
+            if (length > 500) {
+                charCount.classList.add('text-red-500');
+                this.classList.add('border-red-300');
+                this.classList.remove('border-gray-300');
+            } else {
+                charCount.classList.remove('text-red-500');
+                this.classList.remove('border-red-300');
+                this.classList.add('border-gray-300');
+            }
+
+            checkSubmitStatus();
+        });
+
+        // 更新星级显示
+        function updateStars() {
+            ratingInput.value = selectedRating;
+            highlightStars(selectedRating);
+            ratingText.textContent = selectedRating ? ratingLabels[selectedRating] : ' ';
+        }
+
+        function highlightStars(rating) {
+            stars.forEach(star => {
+                const starRating = parseInt(star.getAttribute('data-rating'));
+                if (starRating <= rating) {
+                    star.classList.remove('bi-star');
+                    star.classList.add('bi-star-fill');
+                } else {
+                    star.classList.remove('bi-star-fill');
+                    star.classList.add('bi-star');
+                }
+            });
+        }
+
+        // 检查提交按钮状态
+        function checkSubmitStatus() {
+            const isRatingValid = selectedRating > 0;
+            const commentLength = textarea.value.length;
+            const isCommentValid = commentLength >= 10 && commentLength <= 500;
+
+            submitBtn.disabled = !(isRatingValid && isCommentValid);
+        }
+
     });
     // 辅助函数：获取CSRF令牌
     function getCookie(name) {
@@ -315,5 +463,13 @@
             setTimeout(() => notification.remove(), 300);
         }, 3000);
     }
+
+    window.onload = function() {
+      const commentInput = document.getElementById('id_comment');
+      if (commentInput) { // 避免元素不存在导致报错
+        commentInput.value = '';
+      }
+    };
 </script>
 {% endblock %}
+
