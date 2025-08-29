@@ -4,8 +4,8 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import RegistrationForm, UserProfileForm
-from .models import Favorite
+from .forms import RegistrationForm, UserProfileForm, MerchantApplicationForm
+from .models import Favorite, UserProfile
 from products.models import Product
 
 
@@ -98,3 +98,38 @@ def favorite_list(request):
         'favorites': favorites,
         'title': '我的收藏'
     })
+
+
+@login_required
+def merchant_apply(request):
+    """用户申请成为商户"""
+    # 获取或创建用户资料
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = MerchantApplicationForm(request.POST, instance=profile)
+        if form.is_valid():
+            profile.merchant_application = True  # 标记为已申请
+            form.save()
+            messages.success(request, "商户申请已提交，请等待管理员审核！")
+            return redirect('accounts:profile')
+    else:
+        form = MerchantApplicationForm(instance=profile)
+
+    return render(request, 'accounts/merchant_apply.html', {
+        'form': form
+    })
+
+def register(request):
+    if request.method == 'POST':
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()  # 获取创建的用户对象
+            # 自动为新用户创建UserProfile，默认不是商户
+            UserProfile.objects.create(user=user)
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'账号 {username} 创建成功，请登录！')
+            return redirect('login')
+    else:
+        form = RegistrationForm()
+    return render(request, 'accounts/register.html', {'form': form})

@@ -11,8 +11,19 @@
                 </div>
                 <div class="card-body">
                     <h5 class="card-title">{{ user.username }}</h5>
+                    <p class="card-text">
+                        <strong>商户身份：</strong>
+                        {% if user.userprofile.is_merchant %}
+                            <span class="badge bg-success">已认证商户</span>
+                            <!-- 显示店铺名称（如果有） -->
+                            {% if user.userprofile.shop_name %}
+                                <span class="ms-2">店铺：{{ user.userprofile.shop_name }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge bg-secondary">普通用户</span>
+                        {% endif %}
+                    </p>
                     <p class="card-text"><strong>邮箱：</strong>{{ user.email|default:"未设置" }}</p>
-                    <!-- 新增：显示姓名信息 -->
                     <p class="card-text"><strong>姓名：</strong>{{ user.last_name }}{{ user.first_name|default:"未设置" }}</p>
                     <p class="card-text"><strong>注册时间：</strong>{{ user.date_joined|date:"Y年m月d日" }}</p>
                     <p class="card-text"><strong>最后登录：</strong>{{ user.last_login|date:"Y年m月d日 H:i"|default:"从未登录" }}</p>

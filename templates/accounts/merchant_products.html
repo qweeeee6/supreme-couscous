@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}我的商品管理{% endblock %}
+
+{% block content %}
+    <h2>我的商品管理</h2>
+    {% if products %}
+        <div class="row">
+            {% for product in products %}
+                <div class="col-md-4">
+                    <div class="card">
+                        <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p class="card-text">¥{{ product.price }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>您还没有添加任何商品</p>
+    {% endif %}
+{% endblock %}

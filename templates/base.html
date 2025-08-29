@@ -39,7 +39,20 @@
                         </ul>
                     </li>
                 </ul>
-
+                {% if user.is_authenticated %}
+                    {% if user.profile.is_merchant %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'products:product_create' %}">发布商品</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'products:merchant_products' %}">我的商品</a>
+                        </li>
+                    {% elif not user.profile.merchant_application %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:merchant_apply' %}">申请成为商户</a>
+                        </li>
+                    {% endif %}
+                {% endif %}
                 <!-- 搜索框 -->
                 <form class="d-flex me-2" action="{% url 'products:product_list' %}" method="get">
                     <input class="form-control me-2" type="search" name="search"
