@@ -1,7 +1,10 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView
-
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView
+from .forms import ProductForm
 from .forms import ReviewForm
 from .models import Product, Category, Review
 from django.db.models import Q
@@ -117,3 +120,73 @@ class ProductDetailView(DetailView):
             context = self.get_context_data(object=self.object)
             context['review_form'] = form
             return self.render_to_response(context)
+
+
+@login_required
+def product_create(request):
+    """商户创建商品"""
+    # 检查是否为已认证商户
+    if not hasattr(request.user, 'profile') or not request.user.profile.is_merchant:
+        messages.error(request, "只有商户可以发布商品，请先申请成为商户并通过审核！")
+        return redirect('accounts:profile')
+
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.merchant = request.user  # 关联当前商户
+            product.save()
+            messages.success(request, "商品发布成功！")
+            return redirect('products:product_detail', id=product.id, slug=product.slug)
+    else:
+        form = ProductForm()
+
+    return render(request, 'products/product_form.html', {'form': form})
+
+
+@login_required
+def product_edit(request, product_id):
+    """商户编辑自己的商品"""
+    product = get_object_or_404(Product, id=product_id)
+    # 权限检查：只能编辑自己的商品
+    if product.merchant != request.user:
+        messages.error(request, "您没有权限编辑此商品！")
+        return redirect('products:product_list')
+
+class ProductCreateView(LoginRequiredMixin, CreateView):
+    """创建商品视图（仅登录用户可访问）"""
+    model = Product
+    form_class = ProductForm
+    template_name = 'products/product_form.html'  # 需要创建对应的模板
+    success_url = reverse_lazy('products:product_list')  # 创建成功后跳转的页面
+
+    # 可选：限制只有商户才能创建商品
+    def dispatch(self, request, *args, **kwargs):
+        # 假设UserProfile中有is_merchant字段标记商户身份
+        if not hasattr(request.user, 'userprofile') or not request.user.userprofile.is_merchant:
+            messages.error(request, '只有商户才能创建商品')
+            return redirect('products:product_list')
+        return super().dispatch(request, *args, **kwargs)
+
+    # 可选：自动将当前用户设为商品的商户
+    def form_valid(self, form):
+        form.instance.merchant = self.request.user  # 需确保Product模型有merchant字段
+        return super().form_valid(form)
+
+class MerchantProductListView(LoginRequiredMixin, ListView):
+    """商户商品管理列表视图"""
+    model = Product
+    template_name = 'products/merchant_products.html'
+    context_object_name = 'merchant_products'
+    paginate_by = 10
+
+    def dispatch(self, request, *args, **kwargs):
+        # 验证用户是否为商户（假设UserProfile模型有is_merchant字段）
+        if not hasattr(request.user, 'userprofile') or not request.user.userprofile.is_merchant:
+            messages.error(request, '只有商户才能访问此页面')
+            return redirect('products:product_list')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        # 只显示当前商户的商品（需确保Product模型有merchant外键字段）
+        return Product.objects.filter(merchant=self.request.user, available=True)

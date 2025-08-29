@@ -10,4 +10,5 @@ urlpatterns = [
     path('password-change/', views.password_change, name='password_change'),  # 新增
     path('favorites/', views.favorite_list, name='favorite_list'),
     path('favorite/toggle/<int:product_id>/', views.favorite_toggle, name='favorite_toggle'),
+    path('merchant/apply/', views.merchant_apply, name='merchant_apply'),# 新增商户申请路由
 ]

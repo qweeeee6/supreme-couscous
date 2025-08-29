@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}申请成为商户 - 零食购物网{% endblock %}
+
+{% block content %}
+    <h2>申请成为商户</h2>
+    <form method="post" class="mt-4">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">提交申请</button>
+    </form>
+{% endblock %}

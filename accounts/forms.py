@@ -2,6 +2,9 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.models import User
 
+from accounts.models import UserProfile
+
+
 class RegistrationForm(UserCreationForm):
     """用户注册表单，继承自Django内置的UserCreationForm"""
     email = forms.EmailField(required=True)
@@ -54,4 +57,13 @@ class UserProfileForm(UserChangeForm):
         labels = {
             'first_name': '名',
             'last_name': '姓',
+        }
+
+class MerchantApplicationForm(forms.ModelForm):
+    """商户申请表单"""
+    class Meta:
+        model = UserProfile
+        fields = ['store_name', 'store_description']  # 可添加更多商户信息字段
+        widgets = {
+            'store_description': forms.Textarea(attrs={'rows': 4}),
         }
